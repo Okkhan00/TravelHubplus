@@ -11,12 +11,13 @@ class BackupCodecTest {
     )
 
     @Test fun exportHasNoSecretsOrSecurityRelevantLoginSettings() {
-        val json = BackupCodec.export(listOf(p), 1L).lowercase()
-        assertFalse(json.contains("password"))
-        assertFalse(json.contains("username"))
-        assertFalse(json.contains("autofill"))
-        assertFalse(json.contains("trustedhosts"))
-        assertTrue(json.contains("my portal"))
+        val root = org.json.JSONObject(BackupCodec.export(listOf(p), 1L))
+        val entry = root.getJSONArray("portals").getJSONObject(0)
+        val keys = entry.keys().asSequence().map { it.lowercase() }.toList()
+        assertTrue(keys.contains("name"))
+        listOf("password", "username", "credential", "autofill", "autosubmit", "trusted", "allowhttp", "cookie").forEach { bad ->
+            assertTrue("export must not contain a '$bad' field", keys.none { it.contains(bad) })
+        }
     }
 
     @Test fun roundTripRestoresConfigurationButResetsLoginAutomation() {
