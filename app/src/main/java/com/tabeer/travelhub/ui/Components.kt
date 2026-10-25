@@ -52,9 +52,9 @@ fun PinEntryDialog(
     confirmText: String,
     error: String?,
     onDismiss: () -> Unit,
-    onSubmit: (List<String>) -> Unit,
     extraLabel: String? = null,
     onExtra: (() -> Unit)? = null,
+    onSubmit: (List<String>) -> Unit,
 ) {
     val values = remember { mutableStateListOf(*Array(labels.size) { "" }) }
     AlertDialog(

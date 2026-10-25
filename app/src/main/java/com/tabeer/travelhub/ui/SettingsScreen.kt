@@ -177,12 +177,13 @@ fun SettingsScreen(vm: AppViewModel, activity: FragmentActivity) {
             onExtra = {
                 BiometricHelper.prompt(activity, "Confirm it's you", onSuccess = { authAction = null; action() }, onFailure = { })
             },
-        ) { v ->
-            vm.verifyForAction(v[0]) { r ->
-                authError = lockErr(r)
-                if (r is PinManager.VerifyResult.Success) { authAction = null; action() }
-            }
-        }
+            onSubmit = { v ->
+                vm.verifyForAction(v[0]) { r ->
+                    authError = lockErr(r)
+                    if (r is PinManager.VerifyResult.Success) { authAction = null; action() }
+                }
+            },
+        )
     }
 
     // ---- destructive confirmations ----
