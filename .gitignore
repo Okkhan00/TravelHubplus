@@ -5,3 +5,13 @@ local.properties
 *.iml
 .idea/
 .DS_Store
+captures/
+# Never commit signing material, credentials or backups
+*.jks
+*.keystore
+*.p12
+*.pem
+keystore.properties
+travelhub-backup*.json
+*.apk
+*.aab

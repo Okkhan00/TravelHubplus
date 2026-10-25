@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.TravelHub" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_bg_light</item>
+    </style>
+</resources>
