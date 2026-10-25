@@ -53,7 +53,8 @@ fun PinEntryDialog(
     error: String?,
     onDismiss: () -> Unit,
     onSubmit: (List<String>) -> Unit,
-    extra: (@Composable () -> Unit)? = null,
+    extraLabel: String? = null,
+    onExtra: (() -> Unit)? = null,
 ) {
     val values = remember { mutableStateListOf(*Array(labels.size) { "" }) }
     AlertDialog(
@@ -73,7 +74,7 @@ fun PinEntryDialog(
                     )
                 }
                 if (error != null) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                extra?.invoke()
+                if (extraLabel != null && onExtra != null) TextButton(onClick = onExtra) { Text(extraLabel) }
             }
         },
         confirmButton = { TextButton(onClick = { onSubmit(values.toList()) }) { Text(confirmText) } },

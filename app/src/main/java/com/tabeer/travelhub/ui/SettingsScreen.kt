@@ -173,11 +173,10 @@ fun SettingsScreen(vm: AppViewModel, activity: FragmentActivity) {
     authAction?.let { action ->
         PinEntryDialog(
             "Enter your PIN to continue", listOf("PIN"), "Continue", authError, { authAction = null },
-            extra = if (s.biometricEnabled && bioAvailable) {
-                { TextButton(onClick = {
-                    BiometricHelper.prompt(activity, "Confirm it's you", onSuccess = { authAction = null; action() }, onFailure = { })
-                }) { Text("Use fingerprint / face") } }
-            } else null,
+            extraLabel = if (s.biometricEnabled && bioAvailable) "Use fingerprint / face" else null,
+            onExtra = {
+                BiometricHelper.prompt(activity, "Confirm it's you", onSuccess = { authAction = null; action() }, onFailure = { })
+            },
         ) { v ->
             vm.verifyForAction(v[0]) { r ->
                 authError = lockErr(r)

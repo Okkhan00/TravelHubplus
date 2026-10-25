@@ -254,7 +254,7 @@ private fun PortalCard(p: Portal, hasLogin: Boolean, compact: Boolean, manual: B
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More options for ${p.name}") }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        fun item(label: String, onClick: () -> Unit) =
+                        @Composable fun item(label: String, onClick: () -> Unit) =
                             DropdownMenuItem(text = { Text(label) }, onClick = { menu = false; onClick() })
                         item("Open") { a.open(p) }
                         item("Open in external browser") { a.external(p) }
