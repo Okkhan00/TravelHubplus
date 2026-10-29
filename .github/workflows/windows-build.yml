@@ -52,15 +52,20 @@ jobs:
 
       - name: Install silently and run the in-app self-test
         shell: pwsh
+        timeout-minutes: 8
         run: |
           $setup = (Get-ChildItem dist/TravelHub-Setup-*.exe | Select-Object -First 1).FullName
           Write-Host "Installing $setup"
-          Start-Process -FilePath $setup -ArgumentList '/S' -Wait
+          $inst = Start-Process -FilePath $setup -ArgumentList '/S' -PassThru
+          if (-not $inst.WaitForExit(180000)) { $inst.Kill(); throw 'Silent install did not finish within 3 minutes' }
           $exe = Join-Path $env:LOCALAPPDATA 'Programs\TravelHub\TravelHub.exe'
           if (-not (Test-Path $exe)) { throw "Installed app not found at $exe" }
+          Write-Host "Installed: $exe"
+          Get-Process -Name TravelHub -ErrorAction SilentlyContinue | Stop-Process -Force
           $out = Join-Path (Get-Location) 'selftest-result.txt'
           $env:TRAVELHUB_SELFTEST_OUT = $out
-          $p = Start-Process -FilePath $exe -ArgumentList '--selftest' -PassThru -Wait
+          $p = Start-Process -FilePath $exe -ArgumentList '--selftest' -PassThru
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); Get-Process -Name TravelHub -ErrorAction SilentlyContinue | Stop-Process -Force; throw 'Self-test did not finish within 2 minutes' }
           if (Test-Path $out) { Get-Content $out } else { Write-Host 'No self-test output file was produced' }
           if ($p.ExitCode -ne 0) { throw "Self-test failed (exit code $($p.ExitCode))" }
 
