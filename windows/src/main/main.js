@@ -268,6 +268,12 @@ function createWindow() {
   win.on('focus', disarmLockTimer);
   win.on('restore', disarmLockTimer);
   win.on('closed', () => { win = null; });
+  if (SELFTEST) {
+    win.webContents.on('console-message', (e, level, message, line, src) => trace(`renderer console[${level}]: ${String(message).slice(0, 300)} (${path.basename(String(src))}:${line})`));
+    win.webContents.on('preload-error', (e, file, err) => trace('FAIL  preload error: ' + String(err && err.stack || err).slice(0, 500)));
+    win.webContents.on('render-process-gone', (e, d) => trace('FAIL  renderer gone: ' + JSON.stringify(d)));
+    win.webContents.on('did-fail-load', (e, code, desc) => trace(`FAIL  renderer did-fail-load ${code} ${desc}`));
+  }
 
   browser = new BrowserManager({
     win, getVault: () => vault, toast,
@@ -300,15 +306,22 @@ async function selftest() {
     vault.deleteAll();
     check('portal list starts empty', repo.all().length === 0);
 
+    const js = (code, label) => Promise.race([
+      win.webContents.executeJavaScript(code),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout waiting for renderer: ' + label)), 8000)),
+    ]);
+    trace('stage: waiting for renderer load');
     await new Promise((resolve) => { if (win.webContents.isLoading()) win.webContents.once('did-finish-load', resolve); else resolve(); });
-    const api = await win.webContents.executeJavaScript('typeof window.travelhub === "object" && typeof window.travelhub.getState === "function"');
+    trace('stage: renderer idle, probing preload bridge');
+    const api = await js('typeof window.travelhub === "object" && typeof window.travelhub.getState === "function"', 'bridge');
     check('preload bridge exposed', api === true);
-    const st = await win.webContents.executeJavaScript('window.travelhub.getState()');
+    trace('stage: calling getState over IPC');
+    const st = await js('window.travelhub.getState()', 'getState');
     check('state: empty portals, unlocked', st && Array.isArray(st.portals) && st.portals.length === 0 && st.locked === false);
     await new Promise((r) => setTimeout(r, 500));
-    const emptyText = await win.webContents.executeJavaScript('(document.getElementById("emptyState")||{}).textContent||""');
+    const emptyText = await js('(document.getElementById("emptyState")||{}).textContent||""', 'emptyState');
     check('renderer shows empty state with add action', /Add your first portal/.test(emptyText));
-    const noNode = await win.webContents.executeJavaScript('typeof require === "undefined" && typeof process === "undefined"');
+    const noNode = await js('typeof require === "undefined" && typeof process === "undefined"', 'nonode');
     check('renderer has no Node access', noNode === true);
 
     const { WebContentsView } = require('electron');
