@@ -63,7 +63,18 @@ jobs:
             if (-not $inst.WaitForExit(180000)) { $inst.Kill(); Fail 'Silent install did not finish within 3 minutes' }
             Write-Host "Installer exit code: $($inst.ExitCode)"
             $candidates = @("$env:LOCALAPPDATA\Programs\TravelHub\TravelHub.exe", "$env:LOCALAPPDATA\Programs\travelhub-windows\TravelHub.exe", "$env:ProgramFiles\TravelHub\TravelHub.exe")
-            $exe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            # The NSIS stub can exit before the real install has finished: poll for the installed app.
+            $deadline = (Get-Date).AddSeconds(150)
+            $exe = $null
+            while ((Get-Date) -lt $deadline -and -not $exe) {
+              $exe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+              if (-not $exe) { Start-Sleep -Seconds 3 }
+            }
+            if ($exe) {
+              # let the installer finish writing files / shortcuts, and make sure nothing else is still installing
+              Get-Process | Where-Object { $_.ProcessName -like 'TravelHub-Setup*' } | ForEach-Object { $_.WaitForExit(60000) | Out-Null }
+              Start-Sleep -Seconds 5
+            }
             if (-not $exe) {
               $found = (Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter *.exe -ErrorAction SilentlyContinue | Select-Object -First 5 | ForEach-Object { $_.FullName }) -join '; '
               Fail "Installed app not found. exe files under Programs: $found"
