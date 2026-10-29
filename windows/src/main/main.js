@@ -310,9 +310,9 @@ async function selftest() {
       win.webContents.executeJavaScript(code),
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout waiting for renderer: ' + label)), 8000)),
     ]);
-    trace('stage: waiting for renderer load');
-    await new Promise((resolve) => { if (win.webContents.isLoading()) win.webContents.once('did-finish-load', resolve); else resolve(); });
-    trace('stage: renderer idle, probing preload bridge');
+    // createWindow() already awaited loadFile(); give the renderer a moment to run its first refresh.
+    await new Promise((r) => setTimeout(r, 1000));
+    trace('stage: probing preload bridge');
     const api = await js('typeof window.travelhub === "object" && typeof window.travelhub.getState === "function"', 'bridge');
     check('preload bridge exposed', api === true);
     trace('stage: calling getState over IPC');
