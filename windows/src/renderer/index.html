@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelHub</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Lock screen -->
+  <main id="lockScreen" class="lock hidden"></main>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="hidden">
+    <header class="topbar">
+      <h1>TravelHub</h1>
+      <input id="search" type="search" placeholder="Search by name or website" aria-label="Search portals">
+      <select id="sort" aria-label="Sort portals">
+        <option value="MANUAL">Manual order</option>
+        <option value="ALPHABETICAL">A–Z</option>
+        <option value="RECENT">Recently opened</option>
+      </select>
+      <button id="viewToggle" class="btn ghost" title="Switch list / grid view">Grid</button>
+      <label class="check"><input id="showDisabled" type="checkbox"> Show disabled</label>
+      <span class="spacer"></span>
+      <button id="lockBtn" class="btn ghost hidden">Lock</button>
+      <button id="settingsBtn" class="btn ghost">Settings</button>
+      <button id="addBtn" class="btn primary">+ Add portal</button>
+    </header>
+    <div id="chips" class="chips"></div>
+    <section id="emptyState" class="empty hidden"></section>
+    <section id="portalList" class="portals"></section>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings" class="hidden"></div>
+
+  <!-- Browser toolbar (the portal page itself is drawn by the main process below this bar) -->
+  <div id="browserBar" class="browserbar hidden">
+    <div class="bb-row">
+      <button id="bbClose" class="btn ghost" title="Close portal">✕ Close</button>
+      <div class="bb-title"><div id="bbTitle" class="t"></div><div id="bbDomain" class="d"></div></div>
+    </div>
+    <div class="bb-row actions">
+      <button id="bbBack" class="btn ghost" title="Back">←</button>
+      <button id="bbFwd" class="btn ghost" title="Forward">→</button>
+      <button id="bbReload" class="btn ghost" title="Refresh / stop">⟳</button>
+      <button id="bbFill" class="btn ghost" title="Fill the saved login (only on the trusted domain)">Fill login</button>
+      <button id="bbFillGo" class="btn ghost" title="Fill and press the sign-in button">Fill &amp; sign in</button>
+      <button id="bbExternal" class="btn ghost">Open in browser</button>
+      <button id="bbSignOut" class="btn ghost">Sign out</button>
+      <button id="bbClear" class="btn ghost">Clear session</button>
+      <button id="bbEdit" class="btn ghost">Edit</button>
+    </div>
+    <div id="bbProgress" class="progress hidden"><div></div></div>
+  </div>
+  <section id="browserError" class="berror hidden"></section>
+
+  <dialog id="dlg"></dialog>
+  <div id="toasts" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

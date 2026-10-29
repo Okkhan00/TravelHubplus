@@ -1,0 +1,41 @@
+{
+  "name": "travelhub-windows",
+  "productName": "TravelHub",
+  "version": "0.2.0",
+  "description": "TravelHub for Windows: a personal hub for your own travel-agent portals",
+  "author": "TravelHub",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "selftest": "electron . --selftest",
+    "dist": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.tabeer.travelhub.windows",
+    "productName": "TravelHub",
+    "copyright": "TravelHub",
+    "directories": { "output": "dist", "buildResources": "assets" },
+    "files": ["src/**/*", "package.json"],
+    "asar": true,
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.png",
+      "artifactName": "TravelHub-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TravelHub"
+    }
+  }
+}

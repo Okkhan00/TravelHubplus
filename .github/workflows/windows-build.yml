@@ -1,0 +1,90 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows-build.yml"
+  pull_request:
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: windows
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund 2>&1 | tee install.log
+
+      - name: Unit tests
+        run: npm test 2>&1 | tee test.log
+
+      - name: Build installer (NSIS .exe)
+        run: npm run dist 2>&1 | tee build.log
+
+      - name: Check installer exists
+        run: |
+          ls -la dist
+          test -n "$(ls dist/TravelHub-Setup-*.exe)"
+
+      - name: Install silently and run the in-app self-test
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem dist/TravelHub-Setup-*.exe | Select-Object -First 1).FullName
+          Write-Host "Installing $setup"
+          Start-Process -FilePath $setup -ArgumentList '/S' -Wait
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\TravelHub\TravelHub.exe'
+          if (-not (Test-Path $exe)) { throw "Installed app not found at $exe" }
+          $out = Join-Path (Get-Location) 'selftest-result.txt'
+          $env:TRAVELHUB_SELFTEST_OUT = $out
+          $p = Start-Process -FilePath $exe -ArgumentList '--selftest' -PassThru -Wait
+          if (Test-Path $out) { Get-Content $out } else { Write-Host 'No self-test output file was produced' }
+          if ($p.ExitCode -ne 0) { throw "Self-test failed (exit code $($p.ExitCode))" }
+
+      - name: Surface errors as annotations
+        if: failure()
+        run: |
+          cat install.log test.log build.log selftest-result.txt 2>/dev/null | grep -E "not ok|FAIL|Error|error|ERR!|expected|actual|cannot|Cannot" | sort -u | head -40 | while IFS= read -r line; do echo "::error::${line:0:400}"; done
+
+      - name: Upload Windows installer
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: travelhub-windows-installer
+          path: windows/dist/TravelHub-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build and test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: travelhub-windows-build-and-test-report
+          path: |
+            windows/*.log
+            windows/selftest-result.txt
+          if-no-files-found: warn
+          retention-days: 30
