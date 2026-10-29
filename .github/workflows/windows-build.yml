@@ -79,7 +79,8 @@ jobs:
               $lines = Get-Content $out
               $lines | ForEach-Object { Write-Host $_ }
               $lines | Where-Object { $_ -like 'FAIL*' } | ForEach-Object { Write-Host "::error::selftest $_" }
-              Write-Host "::notice::selftest last line: $($lines[-1])"
+              $joined = ($lines -join '%0A')
+              Write-Host "::notice title=selftest-trace::$joined"
             } else { Write-Host '::error::No self-test output file was produced (the app likely failed before main.js ran)' }
             if (-not $finished) { Fail 'Self-test did not finish within 2 minutes' }
             if ($p.ExitCode -ne 0) { Fail "Self-test failed (exit code $($p.ExitCode))" }
