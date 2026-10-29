@@ -7,6 +7,16 @@ const path = require('path');
 const SELFTEST = process.argv.includes('--selftest');
 if (SELFTEST) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'travelhub-selftest-')));
 
+// Self-test diagnostics (CI only): a stage trace that survives hangs, a watchdog, and no modal crash dialogs.
+const TRACE = SELFTEST ? process.env.TRAVELHUB_SELFTEST_OUT : null;
+const trace = (line) => { if (TRACE) { try { fs.appendFileSync(TRACE, line + '\n'); } catch (e) { /* ignore */ } } };
+if (SELFTEST) {
+  trace('stage: main.js loaded');
+  process.on('uncaughtException', (e) => { trace('FAIL  uncaught exception: ' + String(e && e.stack || e).slice(0, 600)); app.exit(2); });
+  process.on('unhandledRejection', (e) => { trace('FAIL  unhandled rejection: ' + String(e && e.stack || e).slice(0, 600)); app.exit(2); });
+  setTimeout(() => { trace('FAIL  watchdog: self-test stalled (see last stage above)'); app.exit(3); }, 60000).unref();
+}
+
 const io = require('../core/fileio');
 const { PortalRepository, trustedHostsOf, categoriesOf, SUGGESTED_CATEGORIES, blankPortal } = require('../core/portals');
 const { CredentialStore } = require('../core/vault');
@@ -279,7 +289,7 @@ function initData() {
 // ---------- self test (run in CI on the Windows runner: `electron . --selftest`) ----------
 async function selftest() {
   const results = [];
-  const check = (name, cond) => { results.push([name, !!cond]); };
+  const check = (name, cond) => { results.push([name, !!cond]); trace(`${cond ? 'PASS' : 'FAIL'}  ${name}`); };
   try {
     check('safeStorage encryption available', cipher.available());
     const id = 'selftest-portal';
@@ -312,7 +322,7 @@ async function selftest() {
   const lines = [...results.map(([n, ok]) => `${ok ? 'PASS' : 'FAIL'}  ${n}`), failed ? `SELFTEST FAILED (${failed})` : 'SELFTEST OK'];
   lines.forEach((l) => console.log(l));
   // GUI-subsystem apps on Windows have no console, so CI reads the result from a file.
-  if (process.env.TRAVELHUB_SELFTEST_OUT) { try { fs.writeFileSync(process.env.TRAVELHUB_SELFTEST_OUT, lines.join('\n') + '\n'); } catch (e) { /* ignore */ } }
+  trace(lines[lines.length - 1]);
   app.exit(failed ? 1 : 0);
 }
 
@@ -322,10 +332,14 @@ if (!SELFTEST && !app.requestSingleInstanceLock()) {
 } else {
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
   app.whenReady().then(async () => {
+    trace('stage: app ready');
     initData();
+    trace('stage: data initialised');
     registerIpc();
+    trace('stage: ipc registered');
     powerMonitor.on('lock-screen', lockNow);
     await createWindow();
+    trace('stage: window created, renderer loaded');
     if (SELFTEST) await selftest();
   });
   app.on('window-all-closed', () => app.quit());
